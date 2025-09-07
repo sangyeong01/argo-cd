@@ -170,7 +170,7 @@ func (h *Hydrator) ProcessHydrationQueueItem(hydrationKey types.HydrationQueueKe
 			logCtx = logCtx.WithFields(applog.GetAppLogFields(app))
 			logCtx.Errorf("Failed to hydrate app: %v", err)
 		}
-		return
+		return processNext
 	}
 	logCtx.WithField("appCount", len(relevantApps)).Debug("Successfully hydrated apps")
 	finishedAt := metav1.Now()
@@ -198,7 +198,7 @@ func (h *Hydrator) ProcessHydrationQueueItem(hydrationKey types.HydrationQueueKe
 			logCtx.WithField("app", app.QualifiedName()).WithError(err).Error("Failed to request app refresh after hydration")
 		}
 	}
-	return
+	return processNext
 }
 
 func (h *Hydrator) hydrateAppsLatestCommit(logCtx *log.Entry, hydrationKey types.HydrationQueueKey) ([]*appv1.Application, string, string, error) {
@@ -286,9 +286,9 @@ func (h *Hydrator) hydrate(logCtx *log.Entry, apps []*appv1.Application) (string
 			RepoURL:        app.Spec.SourceHydrator.DrySource.RepoURL,
 			Path:           app.Spec.SourceHydrator.DrySource.Path,
 			TargetRevision: app.Spec.SourceHydrator.DrySource.TargetRevision,
-			Helm: 			app.Spec.SourceHydrator.DrySource.Helm,
-			Kustomize: app.Spec.SourceHydrator.DrySource.Kustomize,
-			Directory: app.Spec.SourceHydrator.DrySource.Directory,
+			Helm:           app.Spec.SourceHydrator.DrySource.Helm,
+			Kustomize:      app.Spec.SourceHydrator.DrySource.Kustomize,
+			Directory:      app.Spec.SourceHydrator.DrySource.Directory,
 		}
 		if targetRevision == "" {
 			targetRevision = app.Spec.SourceHydrator.DrySource.TargetRevision
