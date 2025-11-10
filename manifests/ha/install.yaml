@@ -1832,8 +1832,9 @@ spec:
                         pattern: ^.{2,}|[^./]$
                         type: string
                       targetBranch:
-                        description: TargetBranch is the branch to which hydrated
-                          manifests should be committed
+                        description: |-
+                          TargetBranch is the branch from which hydrated manifests will be synced.
+                          If HydrateTo is not set, this is also the branch to which hydrated manifests are committed.
                         type: string
                     required:
                     - path
@@ -5617,8 +5618,9 @@ spec:
                                 pattern: ^.{2,}|[^./]$
                                 type: string
                               targetBranch:
-                                description: TargetBranch is the branch to which hydrated
-                                  manifests should be committed
+                                description: |-
+                                  TargetBranch is the branch from which hydrated manifests will be synced.
+                                  If HydrateTo is not set, this is also the branch to which hydrated manifests are committed.
                                 type: string
                             required:
                             - path
@@ -6069,8 +6071,9 @@ spec:
                                 pattern: ^.{2,}|[^./]$
                                 type: string
                               targetBranch:
-                                description: TargetBranch is the branch to which hydrated
-                                  manifests should be committed
+                                description: |-
+                                  TargetBranch is the branch from which hydrated manifests will be synced.
+                                  If HydrateTo is not set, this is also the branch to which hydrated manifests are committed.
                                 type: string
                             required:
                             - path

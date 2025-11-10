@@ -405,6 +405,7 @@ data:
     {{- if .metadata.author }}
     Co-authored-by: {{ .metadata.author }}
     {{- end }}
+```
 
 ### Credential Templates
 
