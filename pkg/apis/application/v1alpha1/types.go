@@ -51,6 +51,10 @@ import (
 	"github.com/argoproj/argo-cd/v3/util/security"
 )
 
+// Note: Application and ApplicationSet share the same field structure (TypeMeta, ObjectMeta, spec, status)
+// for frontend abstraction (AbstractApplication), but spec and status have different types.
+// Operation is Application-specific and not present in ApplicationSet.
+
 // Application is a definition of Application resource.
 // +genclient
 // +genclient:noStatus
@@ -61,11 +65,11 @@ import (
 // +kubebuilder:printcolumn:name="Revision",type=string,JSONPath=`.status.sync.revision`,priority=10
 // +kubebuilder:printcolumn:name="Project",type=string,JSONPath=`.spec.project`,priority=10
 type Application struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
-	Spec              ApplicationSpec   `json:"spec" protobuf:"bytes,2,opt,name=spec"`
-	Status            ApplicationStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
-	Operation         *Operation        `json:"operation,omitempty" protobuf:"bytes,4,opt,name=operation"`
+	metav1.TypeMeta   `json:",inline"`                                       // Common: shared with ApplicationSet
+	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"` // Common: shared with ApplicationSet
+	Spec              ApplicationSpec                                        `json:"spec" protobuf:"bytes,2,opt,name=spec"`                     // Common: shared with ApplicationSet (different type)
+	Status            ApplicationStatus                                      `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`       // Common: shared with ApplicationSet (different type)
+	Operation         *Operation                                             `json:"operation,omitempty" protobuf:"bytes,4,opt,name=operation"` // Application-only: not in ApplicationSet
 }
 
 // ApplicationSpec represents desired application state. Contains link to repository with application definition and additional parameters link definition revision.
@@ -2265,6 +2269,11 @@ type Cluster struct {
 	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,12,opt,name=labels"`
 	// Annotations for cluster secret metadata
 	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,13,opt,name=annotations"`
+
+	// The embedded metav1.ObjectMeta field is purely here to please the informer when converting from a v1.Secret to a Cluster.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	metav1.ObjectMeta `json:"-,omitempty"`
 }
 
 func (c *Cluster) Sanitized() *Cluster {
@@ -3344,6 +3353,26 @@ func (app *Application) IsHydrateRequested() bool {
 		return true
 	}
 	return false
+}
+
+func (app *Application) HasPreDeleteFinalizer(stage ...string) bool {
+	return getFinalizerIndex(app.ObjectMeta, strings.Join(append([]string{PreDeleteFinalizerName}, stage...), "/")) > -1
+}
+
+func (app *Application) SetPreDeleteFinalizer(stage ...string) {
+	setFinalizer(&app.ObjectMeta, strings.Join(append([]string{PreDeleteFinalizerName}, stage...), "/"), true)
+}
+
+func (app *Application) UnSetPreDeleteFinalizer(stage ...string) {
+	setFinalizer(&app.ObjectMeta, strings.Join(append([]string{PreDeleteFinalizerName}, stage...), "/"), false)
+}
+
+func (app *Application) UnSetPreDeleteFinalizerAll() {
+	for _, finalizer := range app.Finalizers {
+		if strings.HasPrefix(finalizer, PreDeleteFinalizerName) {
+			setFinalizer(&app.ObjectMeta, finalizer, false)
+		}
+	}
 }
 
 func (app *Application) HasPostDeleteFinalizer(stage ...string) bool {
